@@ -1,25 +1,27 @@
+const WebSocket = require('ws');
 const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
 
-app.use(express.static(__dirname + '/public'));
+const wss = new WebSocket.Server({ noServer: true });
 
-io.on('connection', (socket) => {
-    console.log('Novo usuário conectado!');
+wss.on('connection', (ws) => {
+  console.log('Novo usuário conectado!');
+  ws.on('message', (msg) => {
+    console.log(`Mensagem recebida: ${msg}`);
+    ws.send(`Você disse: ${msg}`);
+  });
 
-    socket.on('chat message', (msg) => {
-        io.emit('chat message', msg);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Usuário desconectou!');
-    });
+  ws.on('close', () => {
+    console.log('Usuário desconectado!');
+  });
 });
 
-server.listen(3000, () => {
-    console.log('Servidor rodando na porta 3000');
+app.server = app.listen(3000, () => {
+  console.log('Servidor rodando na porta 3000');
+});
+
+app.server.on('upgrade', (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
 });
